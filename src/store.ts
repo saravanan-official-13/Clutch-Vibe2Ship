@@ -18,6 +18,7 @@ import {
 import type { CaptureImage } from './services/agents';
 import { createGoogleSlides } from './services/googleSlides';
 import { generateSlideImage } from './services/visuals';
+import { isDemoMode } from './services/gemini';
 import { DEMO_BRAINDUMP } from './data/demo';
 import { uid } from './lib/utils';
 import type {
@@ -311,6 +312,10 @@ export const useStore = create<ClutchState>((set, get) => {
             (c) => c.suggestedAgent && c.suggestedAgent !== 'planner',
           );
           for (const c of actionable) {
+            // Respect rate limits and quota by delaying background tasks when in live mode
+            if (!isDemoMode) {
+              await new Promise((resolve) => setTimeout(resolve, 2500));
+            }
             const agentId = c.suggestedAgent as AgentId;
             set((s) => ({
               backups: {

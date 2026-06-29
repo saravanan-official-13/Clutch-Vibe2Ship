@@ -26,7 +26,10 @@ export function getClient(): any {
         });
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `Server returned status ${response.status}`);
+          const err = new Error(errData.error || `Server returned status ${response.status}`) as any;
+          err.status = response.status;
+          err.code = response.status;
+          throw err;
         }
         const data = await response.json();
         
@@ -69,7 +72,10 @@ export function getClient(): any {
         });
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `Server returned status ${response.status}`);
+          const err = new Error(errData.error || `Server returned status ${response.status}`) as any;
+          err.status = response.status;
+          err.code = response.status;
+          throw err;
         }
         return await response.json();
       }
@@ -101,11 +107,20 @@ export function isQuotaError(err: unknown): boolean {
   const code = e?.code ?? e?.error?.code;
   const status = String(e?.status ?? e?.error?.status ?? '');
   const msg = String(e?.message ?? e?.error?.message ?? '');
-  return (
+  
+  const isQuota = (
     code === 429 ||
     status === 'RESOURCE_EXHAUSTED' ||
+    status === '429' ||
     /RESOURCE_EXHAUSTED|exceeded your current quota|rate limit|\b429\b/i.test(msg)
   );
+
+  if (isQuota) {
+    console.warn('Gemini quota reached. Dynamically switching app to Demo Mode.');
+    isDemoMode = true;
+  }
+
+  return isQuota;
 }
 
 /** Pull the server-suggested retry delay (seconds -> ms) out of a 429, if any. */

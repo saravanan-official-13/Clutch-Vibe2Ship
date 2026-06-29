@@ -93,7 +93,10 @@ async function startServer() {
       res.json(response);
     } catch (err: any) {
       console.error('Server-side Gemini Error:', err);
-      res.status(err.status || 500).json({ error: err.message || 'Error from Gemini API' });
+      const isQuota = err.status === 429 || err.code === 429 || 
+                      /RESOURCE_EXHAUSTED|exceeded your current quota|rate limit|\b429\b/i.test(err.message || '');
+      const status = isQuota ? 429 : (err.status || 500);
+      res.status(status).json({ error: err.message || 'Error from Gemini API' });
     }
   });
 
@@ -108,7 +111,10 @@ async function startServer() {
       res.json(response);
     } catch (err: any) {
       console.error('Server-side Imagen Error:', err);
-      res.status(err.status || 500).json({ error: err.message || 'Error from Imagen API' });
+      const isQuota = err.status === 429 || err.code === 429 || 
+                      /RESOURCE_EXHAUSTED|exceeded your current quota|rate limit|\b429\b/i.test(err.message || '');
+      const status = isQuota ? 429 : (err.status || 500);
+      res.status(status).json({ error: err.message || 'Error from Imagen API' });
     }
   });
 

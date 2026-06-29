@@ -1,0 +1,9 @@
+{
+  "name": "Clutch",
+  "description": "Your AI chief of staff for the last 24 hours. A multi-agent productivity companion that does not just remind you, it produces the deck, the script, the briefing and the plan that fits the clock you have left. Built on Gemini and Google AI Studio.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "prompt": ""
+}

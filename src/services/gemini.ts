@@ -28,7 +28,38 @@ export function getClient(): any {
           const errData = await response.json().catch(() => ({}));
           throw new Error(errData.error || `Server returned status ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        
+        // Emulate the SDK properties that the frontend relies on
+        Object.defineProperties(data, {
+          text: {
+            get() {
+              try {
+                return this.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || '';
+              } catch (e) {
+                return '';
+              }
+            }
+          },
+          functionCalls: {
+            get() {
+              try {
+                const parts = this.candidates?.[0]?.content?.parts || [];
+                const calls = [];
+                for (const part of parts) {
+                  if (part.functionCall) {
+                    calls.push(part.functionCall);
+                  }
+                }
+                return calls.length > 0 ? calls : undefined;
+              } catch (e) {
+                return undefined;
+              }
+            }
+          }
+        });
+        
+        return data;
       },
       generateImages: async (args: any) => {
         const response = await fetch('/api/gemini/generateImages', {
@@ -47,10 +78,10 @@ export function getClient(): any {
 }
 
 // Models. Flash is the workhorse for fast agent turns; Pro is available for deeper plans.
-// Updated to the latest stable models as per gemini-api skill rules.
-export const MODEL = 'gemini-3.5-flash';
-export const MODEL_PRO = 'gemini-3.1-pro-preview';
-export const TTS_MODEL = 'gemini-3.1-flash-tts-preview';
+// Restored to the user's original stable values that were optimized for their app.
+export const MODEL = 'gemini-2.5-flash';
+export const MODEL_PRO = 'gemini-2.5-pro';
+export const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
 // ---------------------------------------------------------------------------
 // Free-tier resilience. The free tier caps requests per minute and per day. A

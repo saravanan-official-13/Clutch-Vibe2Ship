@@ -11,29 +11,85 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Initialize the server-side Gemini client
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
-  const ai = new GoogleGenAI({
-    apiKey: geminiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
+  // Bulletproof environment variable loading safeguard
+  try {
+    const fs = await import('fs');
+    for (const envFile of ['.env', '.env.local']) {
+      const envPath = path.join(process.cwd(), envFile);
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const lines = envContent.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+            const parts = trimmed.split('=');
+            const key = parts[0].trim();
+            const value = parts.slice(1).join('=').trim().replace(/^["']|["']$/g, '');
+            if (key && !process.env[key]) {
+              process.env[key] = value;
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load environment files', err);
+  }
+
+  const getGeminiClient = () => {
+    try {
+      const fs = require('fs');
+      for (const envFile of ['.env', '.env.local']) {
+        const envPath = path.join(process.cwd(), envFile);
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          const lines = envContent.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+              const parts = trimmed.split('=');
+              const key = parts[0].trim();
+              const value = parts.slice(1).join('=').trim().replace(/^["']|["']$/g, '');
+              if (key) {
+                process.env[key] = value;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    const key = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+    if (!key) return null;
+    return {
+      key,
+      ai: new GoogleGenAI({
+        apiKey: key,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      })
+    };
+  };
 
   // API Routes
   app.get('/api/gemini/config', (req, res) => {
-    res.json({ isDemoMode: !geminiKey });
+    const client = getGeminiClient();
+    res.json({ isDemoMode: !client });
   });
 
   app.post('/api/gemini/generateContent', async (req, res) => {
     try {
       const { model, contents, config } = req.body;
-      if (!geminiKey) {
+      const client = getGeminiClient();
+      if (!client) {
         return res.status(400).json({ error: 'No API Key configured. Please configure your key in settings.' });
       }
-      const response = await ai.models.generateContent({ model, contents, config });
+      const response = await client.ai.models.generateContent({ model, contents, config });
       res.json(response);
     } catch (err: any) {
       console.error('Server-side Gemini Error:', err);
@@ -44,10 +100,11 @@ async function startServer() {
   app.post('/api/gemini/generateImages', async (req, res) => {
     try {
       const { model, prompt, config } = req.body;
-      if (!geminiKey) {
+      const client = getGeminiClient();
+      if (!client) {
         return res.status(400).json({ error: 'No API Key configured. Please configure your key in settings.' });
       }
-      const response = await (ai.models as any).generateImages({ model, prompt, config });
+      const response = await (client.ai.models as any).generateImages({ model, prompt, config });
       res.json(response);
     } catch (err: any) {
       console.error('Server-side Imagen Error:', err);

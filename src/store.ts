@@ -18,7 +18,7 @@ import {
 import type { CaptureImage } from './services/agents';
 import { createGoogleSlides } from './services/googleSlides';
 import { generateSlideImage } from './services/visuals';
-import { isDemoMode } from './services/gemini';
+import { isDemoMode, registerQuotaCallback } from './services/gemini';
 import { DEMO_BRAINDUMP } from './data/demo';
 import { uid } from './lib/utils';
 import type {
@@ -64,6 +64,7 @@ interface ClutchState {
   view: View;
   theme: Theme;
   now: number;
+  isDemoMode: boolean;
 
   brainDump: string;
   chiefStatus: RunStatus;
@@ -100,6 +101,7 @@ interface ClutchState {
 
   // actions
   setView: (v: View) => void;
+  setDemoMode: (isDemo: boolean) => void;
   toggleTheme: () => void;
   setBrainDump: (s: string) => void;
   setAutonomy: (a: Autonomy) => void;
@@ -231,6 +233,7 @@ export const useStore = create<ClutchState>((set, get) => {
     view: 'landing',
     theme: initialTheme,
     now: Date.now(),
+    isDemoMode: isDemoMode,
 
     brainDump: DEMO_BRAINDUMP,
     chiefStatus: 'idle',
@@ -264,6 +267,7 @@ export const useStore = create<ClutchState>((set, get) => {
     autoActedWatcher: [],
 
     setView: (v) => set({ view: v }),
+    setDemoMode: (isDemo) => set({ isDemoMode: isDemo }),
 
     toggleTheme: () => {
       const next: Theme = get().theme === 'dark' ? 'light' : 'dark';
@@ -652,4 +656,8 @@ export const useStore = create<ClutchState>((set, get) => {
       }));
     },
   };
+});
+
+registerQuotaCallback(() => {
+  useStore.getState().setDemoMode(true);
 });

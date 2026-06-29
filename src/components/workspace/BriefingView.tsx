@@ -5,7 +5,6 @@ import { useStore } from '../../store';
 import { Button } from '../ui/primitives';
 import { RunError, RunLoading } from './MakerStates';
 import { speakBriefing, type SpeechController } from '../../lib/speech';
-import { isDemoMode } from '../../services/gemini';
 import { cn } from '../../lib/utils';
 import type { Briefing } from '../../types';
 
@@ -13,6 +12,7 @@ export function BriefingView() {
   const briefing = useStore((s) => s.briefing);
   const runBriefing = useStore((s) => s.runBriefing);
   const brainDump = useStore((s) => s.brainDump);
+  const isDemoMode = useStore((s) => s.isDemoMode);
 
   if (briefing.status === 'running') {
     return <RunLoading label="Briefing agent is writing the two-host script and voicing it..." lines={6} />;
@@ -75,6 +75,7 @@ function BriefingPlayer({ data, audioUrl }: { data: Briefing; audioUrl: string |
   const [activeTurn, setActiveTurn] = useState(-1);
   const controllerRef = useRef<SpeechController | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isDemoMode = useStore((s) => s.isDemoMode);
 
   // Clean up any in-flight browser speech when leaving the view.
   useEffect(() => {

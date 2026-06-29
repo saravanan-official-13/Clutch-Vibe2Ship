@@ -76,10 +76,12 @@ async function startServer() {
     };
   };
 
+  let isQuotaExhausted = false;
+
   // API Routes
   app.get('/api/gemini/config', (req, res) => {
     const client = getGeminiClient();
-    res.json({ isDemoMode: !client });
+    res.json({ isDemoMode: !client || isQuotaExhausted });
   });
 
   app.post('/api/gemini/generateContent', async (req, res) => {
@@ -92,9 +94,14 @@ async function startServer() {
       const response = await client.ai.models.generateContent({ model, contents, config });
       res.json(response);
     } catch (err: any) {
-      console.error('Server-side Gemini Error:', err);
       const isQuota = err.status === 429 || err.code === 429 || 
                       /RESOURCE_EXHAUSTED|exceeded your current quota|rate limit|\b429\b/i.test(err.message || '');
+      if (isQuota) {
+        isQuotaExhausted = true;
+        console.warn('Gemini quota reached (RESOURCE_EXHAUSTED). Gracefully informing client.');
+      } else {
+        console.error('Server-side Gemini Error:', err);
+      }
       const status = isQuota ? 429 : (err.status || 500);
       res.status(status).json({ error: err.message || 'Error from Gemini API' });
     }
@@ -110,9 +117,14 @@ async function startServer() {
       const response = await (client.ai.models as any).generateImages({ model, prompt, config });
       res.json(response);
     } catch (err: any) {
-      console.error('Server-side Imagen Error:', err);
       const isQuota = err.status === 429 || err.code === 429 || 
                       /RESOURCE_EXHAUSTED|exceeded your current quota|rate limit|\b429\b/i.test(err.message || '');
+      if (isQuota) {
+        isQuotaExhausted = true;
+        console.warn('Imagen quota reached (RESOURCE_EXHAUSTED). Gracefully informing client.');
+      } else {
+        console.error('Server-side Imagen Error:', err);
+      }
       const status = isQuota ? 429 : (err.status || 500);
       res.status(status).json({ error: err.message || 'Error from Imagen API' });
     }

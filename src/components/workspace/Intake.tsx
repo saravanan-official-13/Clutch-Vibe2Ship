@@ -5,7 +5,6 @@ import { Button, Eyebrow } from '../ui/primitives';
 import { useStore } from '../../store';
 import { useAudioRecorder, useSpeechRecognition } from '../../lib/speech';
 import { transcribeAudio } from '../../services/agents';
-import { isDemoMode } from '../../services/gemini';
 
 export function Intake() {
   const reduce = useReducedMotion();
@@ -13,6 +12,7 @@ export function Intake() {
   const setBrainDump = useStore((s) => s.setBrainDump);
   const triage = useStore((s) => s.triage);
   const chiefStatus = useStore((s) => s.chiefStatus);
+  const isDemoMode = useStore((s) => s.isDemoMode);
 
   // Two voice engines. Gemini transcription works in every browser and is used
   // whenever a key is present; the browser Speech API is the no-key demo path.

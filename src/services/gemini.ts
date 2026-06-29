@@ -3,6 +3,11 @@ import { GoogleGenAI } from '@google/genai';
 // We check if the API key is present via a secure config endpoint during startup.
 // This preserves the full-stack architecture security patterns.
 export let isDemoMode = true;
+let quotaCallback: (() => void) | null = null;
+
+export function registerQuotaCallback(cb: () => void) {
+  quotaCallback = cb;
+}
 
 export async function initDemoMode() {
   try {
@@ -118,6 +123,13 @@ export function isQuotaError(err: unknown): boolean {
   if (isQuota) {
     console.warn('Gemini quota reached. Dynamically switching app to Demo Mode.');
     isDemoMode = true;
+    if (quotaCallback) {
+      try {
+        quotaCallback();
+      } catch (e) {
+        // ignore
+      }
+    }
   }
 
   return isQuota;
